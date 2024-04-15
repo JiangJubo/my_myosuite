@@ -35,11 +35,14 @@ class TrackEnv(BaseV0):
         "bonus": 1.0,
         "penalty": -2,
     }
-    def __init__(self, object_name, model_path, obsd_model_path=None, seed=None, **kwargs):
+    def __init__(self, object_name, model_path, reference_path, obsd_model_path=None, seed=None, **kwargs):
 
         curr_dir = os.path.dirname(os.path.abspath(__file__))
         self.object_name = object_name
         time_stamp = str(time.time())
+
+        self.reference_path = reference_path
+        self.pose_buffer_dict = self.pose_buffer_init()
 
         # Process model_path to import the right object
         with open(curr_dir+model_path, 'r') as file:
@@ -78,8 +81,12 @@ class TrackEnv(BaseV0):
         if processed_obsd_model_path and processed_obsd_model_path!=processed_model_path:
             os.remove(processed_obsd_model_path)
 
+        ##### Jiang
+        # ref_path = '/data/MyoHand_alarmclock_lift.npz'
+        reference = curr_dir + self.reference_path
+
         self.initialized_pos = False
-        self._setup(**kwargs)
+        self._setup(reference=reference, **kwargs)
 
 
     def _setup(self,
@@ -96,8 +103,8 @@ class TrackEnv(BaseV0):
         self.ref = ReferenceMotion(reference_data=reference, motion_extrapolation=motion_extrapolation, random_generator=self.np_random)
         self.motion_start_time = motion_start_time
         self.target_sid = self.sim.model.site_name2id("target")
-
-
+        
+        
 
         ##########################################
         self.lift_bonus_thresh =  0.02
@@ -113,6 +120,9 @@ class TrackEnv(BaseV0):
         self.qvel_reward_weight = 0.05
         self.qvel_err_scale = 0.1
 
+        ##########################################
+        # TERMINATIONS
+        
         # TERMINATIONS FOR OBJ TRACK
         self.obj_fail_thresh = 0.25
         # TERMINATIONS FOR HAND-OBJ DISTANCE
@@ -215,11 +225,37 @@ class TrackEnv(BaseV0):
 
         obs_dict['obj_com_err'] =  obs_dict['curr_obj_com'] - obs_dict['targ_obj_com']
 
+
+        # put target and current object pose in pose buffer
+        self.pose_buffer_dict['targ_obj_com'].append(obs_dict['targ_obj_com'])
+        self.pose_buffer_dict['targ_obj_rot'].append(obs_dict['targ_obj_rot'])
+        self.pose_buffer_dict['curr_obj_com'].append(obs_dict['curr_obj_com'])
+        self.pose_buffer_dict['curr_obj_rot'].append(obs_dict['curr_obj_rot'])
+        self.pose_buffer_dict['obj_error'].append(obs_dict['obj_com_err'])
+
+        # obs_dict['error_metrics'] = np.mean(np.linalg.norm(self.pose_buffer_dict['curr_obj_com'] - self.pose_buffer_dict['targ_obj_com'], axis=1))
+        # obs_dict['success_metric'] = np.mean(np.linalg.norm(self.pose_buffer_dict['curr_obj_com'] - self.pose_buffer_dict['targ_obj_com'], axis=1) < 0.1)
+        obs_dict['error_metrics'] = np.array([np.mean(np.linalg.norm(self.pose_buffer_dict['obj_error'], axis=1))])
+        obs_dict['success_metrics'] = np.array([np.mean(np.linalg.norm(self.pose_buffer_dict['obj_error'], axis=1) < 0.01)])
+        
         if sim.model.na>0:
             obs_dict['act'] = sim.data.act[:].copy()
         # self.sim.model.body_names --> body names
         return obs_dict
 
+
+    def pose_buffer_init(self):
+        # to init buffer for storing the target and current object pose
+        pose_buffer_dict = {}
+        
+        pose_buffer_dict['targ_obj_com'] = []
+        pose_buffer_dict['targ_obj_rot'] = []
+        pose_buffer_dict['curr_obj_com'] = []
+        pose_buffer_dict['curr_obj_rot'] = []
+        pose_buffer_dict['obj_error'] = []
+        
+        return pose_buffer_dict
+        
 
     def get_reward_dict(self, obs_dict):
         # get targets from reference object
