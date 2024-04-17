@@ -86,7 +86,8 @@ class TrackEnv(BaseV0):
         reference = curr_dir + self.reference_path
 
         self.initialized_pos = False
-        self._setup(reference=reference, **kwargs)
+        # self._setup(reference=reference, **kwargs)
+        self._setup(**kwargs)
 
 
     def _setup(self,
