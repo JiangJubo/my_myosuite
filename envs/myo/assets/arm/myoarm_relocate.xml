@@ -8,7 +8,7 @@
 ====================================================== -->
 
     <include file="../../../../simhive/myo_sim/arm/assets/myoarm_assets.xml"/>
-    <include file="../../../../simhive/myo_sim/scene/myosuite_scene.xml"/>
+    <!-- <include file="../../../../simhive/myo_sim/scene/myosuite_scene.xml"/> -->
     <compiler meshdir='../../../../simhive/myo_sim/' texturedir='../../../../simhive/myo_sim/'/>
 
     <asset>
@@ -41,8 +41,8 @@
             <joint name="OBJRy" pos="0 0 0" axis="0 1 0" limited="false" damping="0.001" />
             <joint name="OBJRz" pos="0 0 0" axis="0 0 1" limited="false" damping="0.001" />
             <geom type="box" size="0.0284 0.0284 0.0284" euler="0.001 0.001 0.001" condim="4" rgba=".5 .2 .7 1" contype="1" conaffinity="1"/>
-            <geom type="box" size="0.00284 0.00284 0.00284" euler="0.001 0.001 0.001" condim="4" rgba=".5 .2 .7 1" contype="1" conaffinity="1"/> <!-- dummy geom for creating different objects-->
-            <geom type="box" size="0.00284 0.00284 0.00284" euler="0.001 0.001 0.001" condim="4" rgba=".5 .2 .7 1" contype="1" conaffinity="1"/> <!-- dummy geom for creating different objects-->
+            <geom type="box" size="0.00284 0.00284 0.00284" euler="0.001 0.001 0.001" condim="4" rgba=".3 .3 .3 1" contype="1" conaffinity="1"/>
+            <!-- <geom type="box" size="0.00284 0.00284 0.00284" euler="0.001 0.001 0.001" condim="4" rgba=".5 .2 .7 1" contype="1" conaffinity="1"/> -->
             <site name="object_o" type="sphere" size="0.005" rgba="0.8 0.8 0.8 0.8" group="4" pos="0 0 0" />
             <site name="object_x" type="sphere" size="0.005" rgba="0.8 0.2 0.2 0.8" group="4" pos="0.028 0 0" />
             <site name="object_y" type="sphere" size="0.005" rgba="0.2 0.8 0.2 0.8" group="4" pos="0 .028 0" />
