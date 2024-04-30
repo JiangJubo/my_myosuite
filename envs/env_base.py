@@ -460,6 +460,9 @@ class MujocoEnv(gym.Env, gym.utils.EzPickle, ObsVecDict):
             'rwd_dict': self.rwd_dict,                  # MDP(t)
             'state': self.get_env_state(),              # MDP(t)
             
+            # jiang custom_handG
+            'metrics': self.custom_metrics
+            
             # jiang myodmv0
             # 'episode_steps': self.obs_dict['episode_steps'][()],
             # 'episode_reward': self.rwd_dict['episode_reward'][()],
