@@ -18,6 +18,7 @@
     </actuator>
 
     <include file="../../../../simhive/myo_sim/hand/assets/myohand_assets.xml"/>
+    <!-- <include file="../../../../simhive/myo_sim/arm/assets/myoarm_assets.xml"/> -->
     <include file="../../../../simhive/furniture_sim/simpleTable/simpleTable_asset.xml"/>
     <compiler angle="radian" meshdir="../../../../simhive/myo_sim/" texturedir="../../../../simhive/myo_sim/"/>
     <size njmax='1000' nconmax='1000'/>

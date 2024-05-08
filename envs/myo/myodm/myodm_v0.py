@@ -35,14 +35,17 @@ class TrackEnv(BaseV0):
         "bonus": 1.0,
         "penalty": -2,
     }
-    def __init__(self, object_name, model_path, reference_path, obsd_model_path=None, seed=None, **kwargs):
+    def __init__(self, object_name, model_path, obsd_model_path=None, seed=None, **kwargs):
 
         curr_dir = os.path.dirname(os.path.abspath(__file__))
         self.object_name = object_name
         time_stamp = str(time.time())
 
-        self.reference_path = reference_path
+        # jiang
+        # self.reference_path = reference_path
         self.pose_buffer_dict = self.pose_buffer_init()
+        self.eposide_steps = 0
+        self.eposide_reward = 0
 
         # Process model_path to import the right object
         with open(curr_dir+model_path, 'r') as file:
@@ -83,7 +86,7 @@ class TrackEnv(BaseV0):
 
         ##### Jiang
         # ref_path = '/data/MyoHand_alarmclock_lift.npz'
-        reference = curr_dir + self.reference_path
+        # reference = curr_dir + self.reference_path
 
         self.initialized_pos = False
         # self._setup(reference=reference, **kwargs)
@@ -224,20 +227,23 @@ class TrackEnv(BaseV0):
         obs_dict['hand_qpos_err'] = obs_dict['curr_hand_qpos']-obs_dict['targ_hand_qpos']
         obs_dict['hand_qvel_err'] = np.array([0]) if curr_ref.robot_vel is None else (obs_dict['curr_hand_qvel']-obs_dict['targ_hand_qvel'])
 
-        obs_dict['obj_com_err'] =  obs_dict['curr_obj_com'] - obs_dict['targ_obj_com']
 
+
+        obs_dict['obj_com_err'] =  obs_dict['curr_obj_com'] - obs_dict['targ_obj_com']
 
         # put target and current object pose in pose buffer
         self.pose_buffer_dict['targ_obj_com'].append(obs_dict['targ_obj_com'])
-        self.pose_buffer_dict['targ_obj_rot'].append(obs_dict['targ_obj_rot'])
+        # self.pose_buffer_dict['targ_obj_rot'].append(obs_dict['targ_obj_rot'])
         self.pose_buffer_dict['curr_obj_com'].append(obs_dict['curr_obj_com'])
-        self.pose_buffer_dict['curr_obj_rot'].append(obs_dict['curr_obj_rot'])
-        self.pose_buffer_dict['obj_error'].append(obs_dict['obj_com_err'])
+        # self.pose_buffer_dict['curr_obj_rot'].append(obs_dict['curr_obj_rot'])
+        self.pose_buffer_dict['obj_error'].append(np.linalg.norm(obs_dict['obj_com_err']))
 
-        # obs_dict['error_metrics'] = np.mean(np.linalg.norm(self.pose_buffer_dict['curr_obj_com'] - self.pose_buffer_dict['targ_obj_com'], axis=1))
-        # obs_dict['success_metric'] = np.mean(np.linalg.norm(self.pose_buffer_dict['curr_obj_com'] - self.pose_buffer_dict['targ_obj_com'], axis=1) < 0.1)
-        obs_dict['error_metrics'] = np.array([np.mean(np.linalg.norm(self.pose_buffer_dict['obj_error'], axis=1))])
-        obs_dict['success_metrics'] = np.array([np.mean(np.linalg.norm(self.pose_buffer_dict['obj_error'], axis=1) < 0.01)])
+        obs_dict['error_metrics'] = np.array([np.mean(self.pose_buffer_dict['obj_error'])])
+        # obs_dict['success_metrics'] = np.array([np.mean(self.pose_buffer_dict['obj_error'] < 0.1)])
+        obs_dict['success_metrics'] = np.array([np.mean([1 if x < 0.01 else 0 for x in self.pose_buffer_dict['obj_error']])])
+
+        self.eposide_steps += 1
+        obs_dict['episode_steps'] = np.array([self.eposide_steps])
         
         if sim.model.na>0:
             obs_dict['act'] = sim.data.act[:].copy()
@@ -250,9 +256,9 @@ class TrackEnv(BaseV0):
         pose_buffer_dict = {}
         
         pose_buffer_dict['targ_obj_com'] = []
-        pose_buffer_dict['targ_obj_rot'] = []
+        # pose_buffer_dict['targ_obj_rot'] = []
         pose_buffer_dict['curr_obj_com'] = []
-        pose_buffer_dict['curr_obj_rot'] = []
+        # pose_buffer_dict['curr_obj_rot'] = []
         pose_buffer_dict['obj_error'] = []
         
         return pose_buffer_dict
@@ -306,6 +312,10 @@ class TrackEnv(BaseV0):
         ))
         rwd_dict['dense'] = np.sum([wt*rwd_dict[key] for key, wt in self.rwd_keys_wt.items()], axis=0)
 
+        # jiang
+        self.eposide_reward += rwd_dict['dense']
+        rwd_dict['episode_reward'] = self.eposide_reward
+
         # print(rwd_dict['dense'], obj_com_err,rwd_dict['done'],rwd_dict['sparse'])
         return rwd_dict
 
@@ -329,6 +339,11 @@ class TrackEnv(BaseV0):
     def reset(self):
         # print("Reset")
         self.ref.reset()
+        
+        self.pose_buffer_dict = self.pose_buffer_init() #jiang: reset pose buffer
+        self.eposide_steps = 0
+        self.eposide_reward = 0
+        
         obs = super().reset(self.init_qpos, self.init_qvel)
         # print(self.time, self.sim.data.qpos)
         return obs
